@@ -156,6 +156,8 @@ namespace KlayGE
 	public:
 		DeferredRenderingLayer();
 
+		static bool ConfirmDevice();
+
 		void Suspend();
 		void Resume();
 

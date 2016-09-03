@@ -807,16 +807,6 @@ OceanApp::OceanApp()
 	ResLoader::Instance().AddPath("../../Samples/media/Ocean");
 }
 
-bool OceanApp::ConfirmDevice() const
-{
-	RenderDeviceCaps const & caps = Context::Instance().RenderFactoryInstance().RenderEngineInstance().DeviceCaps();
-	if (caps.max_shader_model < ShaderModel(3, 0))
-	{
-		return false;
-	}
-	return true;
-}
-
 void OceanApp::OnCreate()
 {
 	this->LookAt(float3(-3455.78f, 23.4f, 8133.55f), float3(-3456.18f, 23.4f, 8134.49f));

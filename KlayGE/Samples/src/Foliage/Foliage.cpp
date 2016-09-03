@@ -101,16 +101,6 @@ FoliageApp::FoliageApp()
 	ResLoader::Instance().AddPath("../../Samples/media/Foliage");
 }
 
-bool FoliageApp::ConfirmDevice() const
-{
-	RenderDeviceCaps const & caps = Context::Instance().RenderFactoryInstance().RenderEngineInstance().DeviceCaps();
-	if (caps.max_shader_model < ShaderModel(4, 0))
-	{
-		return false;
-	}
-	return true;
-}
-
 void FoliageApp::OnCreate()
 {
 	this->LookAt(float3(-3480.42f, -172.59f, 8235.04f), float3(-3480.58f, -172.28f, 8235.98f));

@@ -897,6 +897,21 @@ namespace KlayGE
 #endif
 	}
 
+	bool DeferredRenderingLayer::ConfirmDevice()
+	{
+		RenderDeviceCaps const & caps = Context::Instance().RenderFactoryInstance().RenderEngineInstance().DeviceCaps();
+		if (caps.max_simultaneous_rts < 2)
+		{
+			return false;
+		}
+		else if (caps.max_shader_model < ShaderModel(4, 0))
+		{
+			return false;
+		}
+
+		return true;
+	}
+
 	void DeferredRenderingLayer::Suspend()
 	{
 		// TODO

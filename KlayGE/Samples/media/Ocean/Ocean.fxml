@@ -155,44 +155,6 @@ void OceanGBufferAlphaBlendMRTPS(float3 texcoord_depth : TEXCOORD0, float2 noise
 		mrt_0, mrt_1);
 }
 
-float4 OceanGBufferAlphaBlendRT0PS(float3 texcoord_depth : TEXCOORD0, float2 noise_grad : TEXCOORD1,
-#ifdef NOPERSPECTIVE_SUPPORT
-					noperspective float2 screen_tc : TEXCOORD2
-#else
-					float3 screen_tc_w : TEXCOORD2
-#endif
-					) : SV_Target
-{
-	float4 mrt_0, mrt_1;
-	OceanGBufferAlphaBlendMRTPS(texcoord_depth, noise_grad,
-#ifdef NOPERSPECTIVE_SUPPORT
-		screen_tc,
-#else
-		screen_tc_w,
-#endif
-		mrt_0, mrt_1);
-	return mrt_0;
-}
-
-float4 OceanGBufferAlphaBlendRT1PS(float3 texcoord_depth : TEXCOORD0, float2 noise_grad : TEXCOORD1,
-#ifdef NOPERSPECTIVE_SUPPORT
-					noperspective float2 screen_tc : TEXCOORD2
-#else
-					float3 screen_tc_w : TEXCOORD2
-#endif
-					) : SV_Target
-{
-	float4 mrt_0, mrt_1;
-	OceanGBufferAlphaBlendMRTPS(texcoord_depth, noise_grad,
-#ifdef NOPERSPECTIVE_SUPPORT
-		screen_tc,
-#else
-		screen_tc_w,
-#endif
-		mrt_0, mrt_1);
-	return mrt_1;
-}
-
 void OceanReflectionAlphaBlendVS(float2 pos : POSITION,
 					out float3 eye_dir : TEXCOORD0,
 #ifdef NOPERSPECTIVE_SUPPORT
@@ -353,27 +315,6 @@ float4 OceanSpecialShadingAlphaBlendPS(float3 eye_dir : TEXCOORD0, float4 tex_co
 		]]>
 	</shader>
 
-	<technique name="OceanDepthAlphaBlendFront" inherit="DepthAlphaBlendFrontTech">
-		<pass name="p0">
-			<state name="vertex_shader" value="OceanGBufferVS()"/>
-			<state name="pixel_shader" value="OceanDepthAlphaBlendPS()"/>
-		</pass>
-	</technique>
-
-	<technique name="OceanGBufferAlphaBlendFrontRT0" inherit="GBufferAlphaBlendFrontRT0Tech">
-		<pass name="p0">
-			<state name="vertex_shader" value="OceanGBufferVS()"/>
-			<state name="pixel_shader" value="OceanGBufferAlphaBlendRT0PS()"/>
-		</pass>
-	</technique>
-
-	<technique name="OceanGBufferAlphaBlendFrontRT1" inherit="GBufferAlphaBlendFrontRT1Tech">
-		<pass name="p0">
-			<state name="vertex_shader" value="OceanGBufferVS()"/>
-			<state name="pixel_shader" value="OceanGBufferAlphaBlendRT1PS()"/>
-		</pass>
-	</technique>
-
 	<technique name="OceanGBufferAlphaBlendFrontMRT" inherit="GBufferAlphaBlendFrontMRTTech">
 		<pass name="p0">
 			<state name="vertex_shader" value="OceanGBufferVS()"/>
@@ -412,20 +353,6 @@ void GBufferFoggySkyBoxMRTPS(out float4 mrt_0 : SV_Target0, out float4 mrt_1 : S
 	mrt_0 = mrt_1 = 0;
 }
 
-float4 GBufferFoggySkyBoxRT0PS() : SV_Target
-{
-	float4 mrt_0, mrt_1;
-	GBufferFoggySkyBoxMRTPS(mrt_0, mrt_1);
-	return mrt_0;
-}
-
-float4 GBufferFoggySkyBoxRT1PS() : SV_Target
-{
-	float4 mrt_0, mrt_1;
-	GBufferFoggySkyBoxMRTPS(mrt_0, mrt_1);
-	return mrt_1;
-}
-
 float4 SpecialShadingFoggySkyBoxPS(float3 texCoord0 : TEXCOORD0) : SV_Target
 {
 	float fog = saturate(normalize(texCoord0).y * scale_bias.x + scale_bias.y);
@@ -438,20 +365,6 @@ float4 SpecialShadingFoggySkyBoxPS(float3 texCoord0 : TEXCOORD0) : SV_Target
 }
 		]]>
 	</shader>
-
-	<technique name="GBufferFoggySkyBoxRT0" inherit="GBufferSkyBoxRT0Tech">
-		<pass name="p0">
-			<state name="vertex_shader" value="FoggySkyBoxVS()"/>
-			<state name="pixel_shader" value="GBufferFoggySkyBoxRT0PS()"/>
-		</pass>
-	</technique>
-
-	<technique name="GBufferFoggySkyBoxRT1" inherit="GBufferSkyBoxRT1Tech">
-		<pass name="p0">
-			<state name="vertex_shader" value="FoggySkyBoxVS()"/>
-			<state name="pixel_shader" value="GBufferFoggySkyBoxRT1PS()"/>
-		</pass>
-	</technique>
 
 	<technique name="GBufferFoggySkyBoxMRT" inherit="GBufferSkyBoxMRTTech">
 		<pass name="p0">

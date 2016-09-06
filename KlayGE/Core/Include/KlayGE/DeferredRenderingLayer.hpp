@@ -71,10 +71,7 @@ namespace KlayGE
 
 		std::array<bool, PTB_None> g_buffer_enables;
 
-		FrameBufferPtr pre_depth_fb;
-
 		FrameBufferPtr g_buffer;
-		FrameBufferPtr g_buffer_rt1;
 		TexturePtr g_buffer_rt0_tex;
 		TexturePtr g_buffer_rt1_tex;
 		TexturePtr g_buffer_ds_tex;
@@ -292,10 +289,6 @@ namespace KlayGE
 		{
 			return shadow_map_perf_;
 		}
-		PerfRangePtr const & DepthPerf(PassTargetBuffer ptb) const
-		{
-			return depth_perfs_[ptb];
-		}
 		PerfRangePtr const & GBufferPerf(PassTargetBuffer ptb) const
 		{
 			return gbuffer_perfs_[ptb];
@@ -337,7 +330,6 @@ namespace KlayGE
 		void AppendIndirectLightingPassScanCode(uint32_t vp_index, uint32_t light_index);
 		void AppendShadingPassScanCode(uint32_t vp_index, PassTargetBuffer pass_tb);
 		void PreparePVP(PerViewport& pvp);
-		void GenerateDepthBuffer(PerViewport const & pvp, PassTargetBuffer pass_tb);
 		void GenerateGBuffer(PerViewport const & pvp, PassTargetBuffer pass_tb);
 		void PostGenerateGBuffer(PerViewport const & pvp);
 		void BuildLinearDepthMipmap(PerViewport const & pvp);
@@ -376,8 +368,6 @@ namespace KlayGE
 #endif
 
 	private:
-		bool mrt_g_buffer_support_;
-		bool depth_texture_support_;
 		bool tex_array_support_;
 
 		RenderEffectPtr g_buffer_effect_;
@@ -590,7 +580,6 @@ namespace KlayGE
 
 #ifndef KLAYGE_SHIP
 		PerfRangePtr shadow_map_perf_;
-		std::array<PerfRangePtr, PTB_None> depth_perfs_;
 		std::array<PerfRangePtr, PTB_None> gbuffer_perfs_;
 		std::array<PerfRangePtr, PTB_None> shadowing_perfs_;
 		std::array<PerfRangePtr, PTB_None> indirect_lighting_perfs_;

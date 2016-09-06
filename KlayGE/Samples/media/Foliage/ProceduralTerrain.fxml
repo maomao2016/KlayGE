@@ -145,22 +145,6 @@ void CalcProceduralTerrainNormalColor(float3 world_pos, float debug_patch,
 	normal = normalize(mul(normal, (float3x3)model_view));
 }
 
-float4 GBufferProceduralTerrainRT0PS(float3 world_pos : TEXCOORD0, float debug_patch : TEXCOORD1) : SV_Target
-{
-	float3 normal, color;
-	CalcProceduralTerrainNormalColor(world_pos, debug_patch, normal, color);
-
-	return StoreGBufferRT0(normal, 0);
-}
-
-float4 GBufferProceduralTerrainRT1PS(float3 world_pos : TEXCOORD0, float debug_patch : TEXCOORD1) : SV_Target
-{
-	float3 normal, color;
-	CalcProceduralTerrainNormalColor(world_pos, debug_patch, normal, color);
-
-	return StoreGBufferRT1(color, 0);
-}
-
 void GBufferProceduralTerrainMRTPS(float3 world_pos : TEXCOORD0, float debug_patch : TEXCOORD1,
 				out float4 mrt_0 : SV_Target0, out float4 mrt_1 : SV_Target1)
 {
@@ -172,53 +156,14 @@ void GBufferProceduralTerrainMRTPS(float3 world_pos : TEXCOORD0, float debug_pat
 }
 		]]>
 	</shader>
-	
-	<technique name="GBufferTessTerrainFillRT0Tech" inherit="DepthTessTerrainTech">
+
+	<technique name="GBufferTessTerrainFillMRTTech">
 		<pass name="p0">
-			<state name="pixel_shader" value="GBufferProceduralTerrainRT0PS()"/>
-		</pass>
-	</technique>
-	<technique name="GBufferTessTerrainLineRT0Tech" inherit="GBufferTessTerrainFillRT0Tech">
-		<pass name="p0">
-			<state name="polygon_mode" value="line"/>
-		</pass>
-	</technique>
-	<technique name="GBufferNoTessTerrainFillRT0Tech" inherit="DepthNoTessTerrainTech">
-		<pass name="p0">
-			<state name="pixel_shader" value="GBufferProceduralTerrainRT0PS()"/>
-		</pass>
-	</technique>
-	<technique name="GBufferNoTessTerrainLineRT0Tech" inherit="GBufferNoTessTerrainFillRT0Tech">
-		<pass name="p0">
-			<state name="polygon_mode" value="line"/>
-		</pass>
-	</technique>
-	<technique name="GBufferTessTerrainFillRT1Tech" inherit="DepthTessTerrainTech">
-		<pass name="p0">
-			<state name="depth_func" value="equal"/>
-			
-			<state name="pixel_shader" value="GBufferProceduralTerrainRT1PS()"/>
-		</pass>
-	</technique>
-	<technique name="GBufferTessTerrainLineRT1Tech" inherit="GBufferTessTerrainFillRT1Tech">
-		<pass name="p0">
-			<state name="polygon_mode" value="line"/>
-		</pass>
-	</technique>
-	<technique name="GBufferNoTessTerrainFillRT1Tech" inherit="DepthNoTessTerrainTech">
-		<pass name="p0">
-			<state name="depth_func" value="equal"/>
-			
-			<state name="pixel_shader" value="GBufferProceduralTerrainRT1PS()"/>
-		</pass>
-	</technique>
-	<technique name="GBufferNoTessTerrainLineRT1Tech" inherit="GBufferNoTessTerrainFillRT1Tech">
-		<pass name="p0">
-			<state name="polygon_mode" value="line"/>
-		</pass>
-	</technique>
-	<technique name="GBufferTessTerrainFillMRTTech" inherit="DepthTessTerrainTech">
-		<pass name="p0">
+			<state name="cull_mode" value="back"/>
+
+			<state name="vertex_shader" value="GBufferTessTerrainVS()"/>
+			<state name="hull_shader" value="GBufferTessTerrainHS()"/>
+			<state name="domain_shader" value="GBufferTessTerrainDS()"/>
 			<state name="pixel_shader" value="GBufferProceduralTerrainMRTPS()"/>
 		</pass>
 	</technique>
@@ -227,8 +172,11 @@ void GBufferProceduralTerrainMRTPS(float3 world_pos : TEXCOORD0, float debug_pat
 			<state name="polygon_mode" value="line"/>
 		</pass>
 	</technique>
-	<technique name="GBufferNoTessTerrainFillMRTTech" inherit="DepthNoTessTerrainTech">
+	<technique name="GBufferNoTessTerrainFillMRTTech">
 		<pass name="p0">
+			<state name="cull_mode" value="back"/>
+
+			<state name="vertex_shader" value="GBufferNoTessTerrainVS()"/>
 			<state name="pixel_shader" value="GBufferProceduralTerrainMRTPS()"/>
 		</pass>
 	</technique>

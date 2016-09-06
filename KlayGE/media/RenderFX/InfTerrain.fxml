@@ -481,12 +481,6 @@ float3 SampleDetailNormal(float2 world_xz)
 	return normalize(float3(scale * grad.x, coarse_sample_spacing * world_uv_repeats.y * detail_uv_scale.y, scale * grad.y));
 }
 
-float4 DepthTerrainPS(float3 world_pos : TEXCOORD0, float debug_patch : TEXCOORD1) : SV_Target
-{
-	float3 pos_es = mul(float4(world_pos, 1), model_view).xyz;
-	return pos_es.z;
-}
-
 float3 CalcTerrainNormal(float3 world_pos)
 {
 	float2 height_uv = WorldXZToHeightUV(world_pos.xz);
@@ -515,12 +509,6 @@ float3 CalcTerrainColor(float3 world_pos, float debug_patch, float4 mask)
 	return color;
 }
 
-float4 GenNoTessTerrainShadowMapWODepthTexturePS(float3 world_pos : TEXCOORD0) : SV_Target
-{
-	float3 pos_es = mul(float4(world_pos, 1), model_view).xyz;
-	return length(pos_es);
-}
-
 float4 GenNoTessTerrainCascadedShadowMapPS(float3 world_pos : TEXCOORD0) : SV_Target
 {
 	float3 pos_es = mul(float4(world_pos, 1), model_view).xyz;
@@ -529,25 +517,6 @@ float4 GenNoTessTerrainCascadedShadowMapPS(float3 world_pos : TEXCOORD0) : SV_Ta
 		]]>
 	</shader>
 
-	<technique name="DepthTessTerrainTech">
-		<pass name="p0">
-			<state name="cull_mode" value="back"/>
-
-			<state name="vertex_shader" value="GBufferTessTerrainVS()"/>
-			<state name="hull_shader" value="GBufferTessTerrainHS()"/>
-			<state name="domain_shader" value="GBufferTessTerrainDS()"/>
-			<state name="pixel_shader" value="DepthTerrainPS()"/>
-		</pass>
-	</technique>
-	<technique name="DepthNoTessTerrainTech">
-		<pass name="p0">
-			<state name="cull_mode" value="back"/>
-
-			<state name="vertex_shader" value="GBufferNoTessTerrainVS()"/>
-			<state name="pixel_shader" value="DepthTerrainPS()"/>
-		</pass>
-	</technique>
-
 	<technique name="GenNoTessTerrainShadowMapTech">
 		<pass name="p0">
 			<state name="cull_mode" value="none"/>
@@ -555,15 +524,6 @@ float4 GenNoTessTerrainCascadedShadowMapPS(float3 world_pos : TEXCOORD0) : SV_Ta
 
 			<state name="vertex_shader" value="GBufferNoTessTerrainVS()"/>
 			<state name="pixel_shader" value="GenShadowMapPS()"/>
-		</pass>
-	</technique>
-
-	<technique name="GenNoTessTerrainShadowMapWODepthTextureTech">
-		<pass name="p0">
-			<state name="cull_mode" value="none"/>
-
-			<state name="vertex_shader" value="GBufferNoTessTerrainVS()"/>
-			<state name="pixel_shader" value="GenNoTessTerrainShadowMapWODepthTexturePS()"/>
 		</pass>
 	</technique>
 

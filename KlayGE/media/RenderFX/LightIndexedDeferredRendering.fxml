@@ -131,7 +131,6 @@ float4 DrawLightIndexPointPS(float2 tc : TEXCOORD0) : SV_Target
 		nl = num_lights;
 	}
 
-#if LIGHT_BATCH > 4
 	int index = 0;
 	for (int comp = 0, li = 0; li < nl; li += 8, ++ comp)
 	{
@@ -146,16 +145,6 @@ float4 DrawLightIndexPointPS(float2 tc : TEXCOORD0) : SV_Target
 
 		all_light_id[comp] = (accum + 0.5f) / 255.0f;
 	}
-#else
-	[unroll]
-	for (int index = 0; index < nl; ++ index)
-	{
-		if (OverlapTestPoint(planes, index))
-		{
-			all_light_id[index] = 1;
-		}
-	}
-#endif
 
 	return float4(all_light_id);
 #endif
@@ -192,7 +181,6 @@ float4 DrawLightIndexSpotPS(float2 tc : TEXCOORD0) : SV_Target
 		nl = num_lights;
 	}
 
-#if LIGHT_BATCH > 4
 	int index = 0;
 	for (int comp = 0, li = 0; li < nl; li += 8, ++ comp)
 	{
@@ -207,16 +195,6 @@ float4 DrawLightIndexSpotPS(float2 tc : TEXCOORD0) : SV_Target
 		
 		all_light_id[comp] = (accum + 0.5f) / 255.0f;
 	}
-#else
-	[unroll]
-	for (int index = 0; index < nl; ++ index)
-	{
-		if (OverlapTestSpot(planes, index))
-		{
-			all_light_id[index] = 1;
-		}
-	}
-#endif
 
 	return float4(all_light_id);
 #endif
@@ -451,7 +429,6 @@ float4 LIDRPointPS(float2 tc : TEXCOORD0, float3 view_dir : TEXCOORD1) : SV_Targ
 			nl = num_lights;
 		}
 
-#if LIGHT_BATCH > 4
 		for (uint comp = 0, li = 0; li < nl; ++ comp, li += 8)
 		{
 			uint index = li + 7;
@@ -473,17 +450,6 @@ float4 LIDRPointPS(float2 tc : TEXCOORD0, float3 view_dir : TEXCOORD1) : SV_Targ
 				-- index;
 			}
 		}
-#else
-		[unroll]
-		for (int index = 0; index < nl; ++ index)
-		{
-			if (light_index[index])
-			{
-				shading.rgb += CalcLIDRPointShading(index, pos_es, normal, view_dir, c_diff, c_spec, spec_normalize, shininess,
-					tc, tc_ddx, tc_ddy);
-			}
-		}
-#endif
 #endif
 	}
 
@@ -539,7 +505,6 @@ float4 LIDRSpotPS(float2 tc : TEXCOORD0, float3 view_dir : TEXCOORD1) : SV_Targe
 			nl = num_lights;
 		}
 
-#if LIGHT_BATCH > 4
 		for (uint comp = 0, li = 0; li < nl; ++ comp, li += 8)
 		{
 			uint index = li + 7;
@@ -561,17 +526,6 @@ float4 LIDRSpotPS(float2 tc : TEXCOORD0, float3 view_dir : TEXCOORD1) : SV_Targe
 				-- index;
 			}
 		}
-#else
-		[unroll]
-		for (int index = 0; index < nl; ++ index)
-		{
-			if (light_index[index])
-			{
-				shading.rgb += CalcLIDRSpotShading(index, pos_es, normal, view_dir, c_diff, c_spec, spec_normalize, shininess,
-					tc, tc_ddx, tc_ddy);
-			}
-		}
-#endif
 #endif
 	}
 
@@ -627,7 +581,6 @@ float4 LIDRSphereAreaPS(float2 tc : TEXCOORD0, float3 view_dir : TEXCOORD1) : SV
 			nl = num_lights;
 		}
 
-#if LIGHT_BATCH > 4
 		for (uint comp = 0, li = 0; li < nl; ++ comp, li += 8)
 		{
 			uint index = li + 7;
@@ -649,17 +602,6 @@ float4 LIDRSphereAreaPS(float2 tc : TEXCOORD0, float3 view_dir : TEXCOORD1) : SV
 				-- index;
 			}
 		}
-#else
-		[unroll]
-		for (int index = 0; index < nl; ++ index)
-		{
-			if (light_index[index])
-			{
-				shading.rgb += CalcLIDRSphereAreaShading(index, pos_es, normal, view_dir, c_diff, c_spec, spec_normalize, shininess,
-					tc, tc_ddx, tc_ddy);
-			}
-		}
-#endif
 #endif
 	}
 
@@ -716,7 +658,6 @@ float4 LIDRTubeAreaPS(float2 tc : TEXCOORD0, float3 view_dir : TEXCOORD1) : SV_T
 			nl = num_lights;
 		}
 
-#if LIGHT_BATCH > 4
 		for (uint comp = 0, li = 0; li < nl; ++ comp, li += 8)
 		{
 			uint index = li + 7;
@@ -738,17 +679,6 @@ float4 LIDRTubeAreaPS(float2 tc : TEXCOORD0, float3 view_dir : TEXCOORD1) : SV_T
 				-- index;
 			}
 		}
-#else
-		[unroll]
-		for (int index = 0; index < nl; ++ index)
-		{
-			if (light_index[index])
-			{
-				shading.rgb += CalcLIDRTubeAreaShading(index, pos_es, normal, view_dir, c_diff, c_spec, spec_normalize, shininess,
-					tc, tc_ddx, tc_ddy);
-			}
-		}
-#endif
 #endif
 	}
 

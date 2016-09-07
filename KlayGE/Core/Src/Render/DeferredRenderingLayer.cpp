@@ -418,7 +418,7 @@ namespace KlayGE
 		tex_array_support_ = (caps.max_texture_array_length >= 4) && (caps.render_to_texture_array_support);
 
 #if DEFAULT_DEFERRED == LIGHT_INDEXED_DEFERRED
-		if ((caps.max_shader_model >= ShaderModel(5, 0)) && (caps.cs_support))
+		if ((caps.max_shader_model >= ShaderModel(5, 0)) && caps.cs_support)
 		{
 			static_assert(32 == TILE_SIZE, "TILE_SIZE must be 32.");
 
@@ -535,14 +535,7 @@ namespace KlayGE
 		default_ambient_light_ = MakeSharedPtr<AmbientLightSource>();
 
 		g_buffer_effect_ = SyncLoadRenderEffect("GBufferNoSkinning.fxml");
-		if (caps.max_shader_model >= ShaderModel(3, 0))
-		{
-			g_buffer_skinning_effect_ = SyncLoadRenderEffect("GBufferSkinning128.fxml");
-		}
-		else
-		{
-			g_buffer_skinning_effect_ = SyncLoadRenderEffect("GBufferSkinning64.fxml");
-		}
+		g_buffer_skinning_effect_ = SyncLoadRenderEffect("GBufferSkinning128.fxml");
 #if DEFAULT_DEFERRED == TRIDITIONAL_DEFERRED
 		dr_effect_ = SyncLoadRenderEffect("DeferredRendering.fxml");
 #elif DEFAULT_DEFERRED == LIGHT_INDEXED_DEFERRED
@@ -553,16 +546,8 @@ namespace KlayGE
 		}
 		else
 		{
-			if (caps.max_shader_model >= ShaderModel(4, 0))
-			{
-				light_batch_ = 32;
-				dr_effect_ = SyncLoadRenderEffect("LightIndexedDeferredRendering32.fxml");
-			}
-			else
-			{
-				light_batch_ = 4;
-				dr_effect_ = SyncLoadRenderEffect("LightIndexedDeferredRendering4.fxml");
-			}
+			light_batch_ = 32;
+			dr_effect_ = SyncLoadRenderEffect("LightIndexedDeferredRendering32.fxml");
 		}
 #endif
 

@@ -404,17 +404,6 @@ namespace KlayGE
 		RenderEngine& re = rf.RenderEngineInstance();
 		RenderDeviceCaps const & caps = re.DeviceCaps();
 
-		ElementFormat ds_fmt;
-		if (caps.rendertarget_format_support(EF_D24S8, 1, 0))
-		{
-			ds_fmt = EF_D24S8;
-		}
-		else
-		{
-			BOOST_ASSERT(caps.rendertarget_format_support(EF_D16, 1, 0));
-			ds_fmt = EF_D16;
-		}
-
 		tex_array_support_ = (caps.max_texture_array_length >= 4) && (caps.render_to_texture_array_support);
 
 #if DEFAULT_DEFERRED == LIGHT_INDEXED_DEFERRED
@@ -621,41 +610,25 @@ namespace KlayGE
 
 		sm_fb_ = rf.MakeFrameBuffer();
 		ElementFormat fmt;
-		if (caps.pack_to_rgba_required)
+		if (caps.rendertarget_format_support(EF_R32F, 1, 0))
 		{
-			if (caps.rendertarget_format_support(EF_ABGR8, 1, 0))
-			{
-				fmt = EF_ABGR8;
-			}
-			else
-			{
-				BOOST_ASSERT(caps.rendertarget_format_support(EF_ARGB8, 1, 0));
-				fmt = EF_ARGB8;
-			}
+			fmt = EF_R32F;
 		}
 		else
 		{
-			if (caps.rendertarget_format_support(EF_R32F, 1, 0))
-			{
-				fmt = EF_R32F;
-			}
-			else
-			{
-				BOOST_ASSERT(caps.rendertarget_format_support(EF_R16F, 1, 0));
-				fmt = EF_R16F;
-			}
+			BOOST_ASSERT(caps.rendertarget_format_support(EF_R16F, 1, 0));
+			fmt = EF_R16F;
 		}
 		sm_tex_ = rf.MakeTexture2D(SM_SIZE, SM_SIZE, 1, 1, fmt, 1, 0, EAH_GPU_Read | EAH_GPU_Write, nullptr);
 		sm_fb_->Attach(FrameBuffer::ATT_Color0, rf.Make2DRenderView(*sm_tex_, 0, 1, 0));
-		sm_depth_tex_ = rf.MakeTexture2D(SM_SIZE, SM_SIZE, 1, 1, ds_fmt, 1, 0, EAH_GPU_Read | EAH_GPU_Write, nullptr);
+		sm_depth_tex_ = rf.MakeTexture2D(SM_SIZE, SM_SIZE, 1, 1, EF_D24S8, 1, 0, EAH_GPU_Read | EAH_GPU_Write, nullptr);
 		RenderViewPtr sm_depth_view = rf.Make2DDepthStencilRenderView(*sm_depth_tex_, 0, 1, 0);
 		sm_fb_->Attach(FrameBuffer::ATT_DepthStencil, sm_depth_view);
 
 		csm_fb_ = rf.MakeFrameBuffer();
 		csm_tex_ = rf.MakeTexture2D(SM_SIZE * 2, SM_SIZE * 2, 1, 1, fmt, 1, 0, EAH_GPU_Read | EAH_GPU_Write, nullptr);
 		csm_fb_->Attach(FrameBuffer::ATT_Color0, rf.Make2DRenderView(*csm_tex_, 0, 1, 0));
-		csm_fb_->Attach(FrameBuffer::ATT_DepthStencil,
-			rf.Make2DDepthStencilRenderView(SM_SIZE * 2, SM_SIZE * 2, ds_fmt, 1, 0));
+		csm_fb_->Attach(FrameBuffer::ATT_DepthStencil, rf.Make2DDepthStencilRenderView(SM_SIZE * 2, SM_SIZE * 2, EF_D24S8, 1, 0));
 
 		for (uint32_t i = 0; i < filtered_sm_2d_texs_.size(); ++ i)
 		{
@@ -696,32 +669,27 @@ namespace KlayGE
 		translucency_pp_ = SyncLoadPostProcess("Translucency.ppml", "Translucency");
 		translucency_pp_->SetParam(6, 100.0f);
 
-		if (caps.fp_color_support)
+		rsm_fb_ = rf.MakeFrameBuffer();
+
+		ElementFormat fmt8;
+		if (caps.rendertarget_format_support(EF_ABGR8, 1, 0))
 		{
-			rsm_fb_ = rf.MakeFrameBuffer();
-
-			ElementFormat fmt8;
-			if (caps.rendertarget_format_support(EF_ABGR8, 1, 0))
-			{
-				fmt8 = EF_ABGR8;
-			}
-			else
-			{
-				BOOST_ASSERT(caps.rendertarget_format_support(EF_ARGB8, 1, 0));
-
-				fmt8 = EF_ARGB8;
-			}
-
-			rsm_texs_[0] = rf.MakeTexture2D(SM_SIZE, SM_SIZE, MAX_RSM_MIPMAP_LEVELS, 1, fmt8, 1, 0, EAH_GPU_Read | EAH_GPU_Write | EAH_Generate_Mips, nullptr);
-			rsm_texs_[1] = rf.MakeTexture2D(SM_SIZE, SM_SIZE, MAX_RSM_MIPMAP_LEVELS, 1, fmt8, 1, 0, EAH_GPU_Read | EAH_GPU_Write | EAH_Generate_Mips, nullptr);
-			rsm_fb_->Attach(FrameBuffer::ATT_Color0, rf.Make2DRenderView(*rsm_texs_[0], 0, 1, 0)); // normal (light space)
-			rsm_fb_->Attach(FrameBuffer::ATT_Color1, rf.Make2DRenderView(*rsm_texs_[1], 0, 1, 0)); // albedo
-			rsm_fb_->Attach(FrameBuffer::ATT_DepthStencil, sm_depth_view);
-			
-			copy_to_light_buffer_pp_ = SyncLoadPostProcess("Copy2LightBuffer.ppml", "CopyToLightBuffer");
-			copy_to_light_buffer_i_pp_ = SyncLoadPostProcess("Copy2LightBuffer.ppml", "CopyToLightBufferI");
+			fmt8 = EF_ABGR8;
 		}
+		else
+		{
+			BOOST_ASSERT(caps.rendertarget_format_support(EF_ARGB8, 1, 0));
 
+			fmt8 = EF_ARGB8;
+		}
+		rsm_texs_[0] = rf.MakeTexture2D(SM_SIZE, SM_SIZE, MAX_RSM_MIPMAP_LEVELS, 1, fmt8, 1, 0, EAH_GPU_Read | EAH_GPU_Write | EAH_Generate_Mips, nullptr);
+		rsm_texs_[1] = rf.MakeTexture2D(SM_SIZE, SM_SIZE, MAX_RSM_MIPMAP_LEVELS, 1, fmt8, 1, 0, EAH_GPU_Read | EAH_GPU_Write | EAH_Generate_Mips, nullptr);
+		rsm_fb_->Attach(FrameBuffer::ATT_Color0, rf.Make2DRenderView(*rsm_texs_[0], 0, 1, 0)); // normal (light space)
+		rsm_fb_->Attach(FrameBuffer::ATT_Color1, rf.Make2DRenderView(*rsm_texs_[1], 0, 1, 0)); // albedo
+		rsm_fb_->Attach(FrameBuffer::ATT_DepthStencil, sm_depth_view);
+			
+		copy_to_light_buffer_pp_ = SyncLoadPostProcess("Copy2LightBuffer.ppml", "CopyToLightBuffer");
+		copy_to_light_buffer_i_pp_ = SyncLoadPostProcess("Copy2LightBuffer.ppml", "CopyToLightBufferI");
 
 		sm_filter_pp_ = MakeSharedPtr<LogGaussianBlurPostProcess>(4, true);
 		sm_filter_pp_->InputPin(0, sm_tex_);
@@ -871,7 +839,15 @@ namespace KlayGE
 		{
 			return false;
 		}
+		else if (!caps.fp_color_support)
+		{
+			return false;
+		}
 		else if (caps.pack_to_rgba_required)
+		{
+			return false;
+		}
+		else if (!(caps.texture_format_support(EF_D24S8) && caps.rendertarget_format_support(EF_D24S8, 1, 0)))
 		{
 			return false;
 		}
@@ -968,43 +944,17 @@ namespace KlayGE
 			fmt8 = EF_ARGB8;
 		}
 		ElementFormat depth_fmt;
-		if (caps.pack_to_rgba_required)
+		if (caps.rendertarget_format_support(EF_R16F, 1, 0))
 		{
-			if (caps.rendertarget_format_support(EF_ABGR8, 1, 0))
-			{
-				depth_fmt = EF_ABGR8;
-			}
-			else
-			{
-				BOOST_ASSERT(caps.rendertarget_format_support(EF_ARGB8, 1, 0));
-				depth_fmt = EF_ARGB8;
-			}
+			depth_fmt = EF_R16F;
 		}
 		else
 		{
-			if (caps.rendertarget_format_support(EF_R16F, 1, 0))
-			{
-				depth_fmt = EF_R16F;
-			}
-			else
-			{
-				BOOST_ASSERT(caps.rendertarget_format_support(EF_R32F, 1, 0));
-				depth_fmt = EF_R32F;
-			}
+			BOOST_ASSERT(caps.rendertarget_format_support(EF_R32F, 1, 0));
+			depth_fmt = EF_R32F;
 		}
 
-		ElementFormat ds_fmt;
-		if (caps.texture_format_support(EF_D24S8))
-		{
-			ds_fmt = EF_D24S8;
-		}
-		else
-		{
-			BOOST_ASSERT(caps.texture_format_support(EF_D16));
-			ds_fmt = EF_D16;
-		}
-
-		pvp.g_buffer_ds_tex = rf.MakeTexture2D(width, height, 1, 1, ds_fmt, 1, 0, EAH_GPU_Read | EAH_GPU_Write, nullptr);
+		pvp.g_buffer_ds_tex = rf.MakeTexture2D(width, height, 1, 1, EF_D24S8, 1, 0, EAH_GPU_Read | EAH_GPU_Write, nullptr);
 		RenderViewPtr ds_view = rf.Make2DDepthStencilRenderView(*pvp.g_buffer_ds_tex, 0, 1, 0);
 
 		pvp.g_buffer_rt0_tex = rf.MakeTexture2D(width, height, MAX_IL_MIPMAP_LEVELS + 1, 1, fmt8, 1, 0,
@@ -1019,17 +969,6 @@ namespace KlayGE
 		}
 #endif
 		pvp.g_buffer_depth_tex = rf.MakeTexture2D(width, height, MAX_IL_MIPMAP_LEVELS + 1, 1, depth_fmt, 1, 0, hint, nullptr);
-		if (caps.pack_to_rgba_required)
-		{
-			// Workaround for some HWs that don't support render-to-mipmap-level
-			pvp.g_buffer_depth_pingpong_texs.resize(MAX_IL_MIPMAP_LEVELS);
-			for (int i = 0; i < MAX_IL_MIPMAP_LEVELS; ++ i)
-			{
-				pvp.g_buffer_depth_pingpong_texs[i] = rf.MakeTexture2D(
-					pvp.g_buffer_depth_tex->Width(i + 1), pvp.g_buffer_depth_tex->Height(i + 1), 1, 1,
-					depth_fmt, 1, 0, EAH_GPU_Read | EAH_GPU_Write, nullptr);
-			}
-		}
 		pvp.g_buffer_rt0_backup_tex = rf.MakeTexture2D(width, height, 1, 1, fmt8, 1, 0,
 			EAH_GPU_Read, nullptr);
 #if DEFAULT_DEFERRED == LIGHT_INDEXED_DEFERRED
@@ -1082,60 +1021,26 @@ namespace KlayGE
 		this->SetupViewportGI(index, false);
 
 		ElementFormat fmt;
-		if (caps.pack_to_rgba_required)
+		if (caps.rendertarget_format_support(EF_R32F, 1, 0))
 		{
-			if (caps.rendertarget_format_support(EF_ABGR8, 1, 0))
-			{
-				fmt = EF_ABGR8;
-			}
-			else
-			{
-				BOOST_ASSERT(caps.rendertarget_format_support(EF_ARGB8, 1, 0));
-				fmt = EF_ARGB8;
-			}
+			fmt = EF_R32F;
 		}
 		else
 		{
-			if (caps.rendertarget_format_support(EF_R32F, 1, 0))
-			{
-				fmt = EF_R32F;
-			}
-			else
-			{
-				BOOST_ASSERT(caps.rendertarget_format_support(EF_R16F, 1, 0));
-				fmt = EF_R16F;
-			}
+			BOOST_ASSERT(caps.rendertarget_format_support(EF_R16F, 1, 0));
+			fmt = EF_R16F;
 		}
 		if (tex_array_support_)
 		{
-			if (caps.pack_to_rgba_required)
-			{
-				pvp.filtered_csm_texs[0] = rf.MakeTexture2D(SM_SIZE * 2, SM_SIZE * 2, 1,
-					CascadedShadowLayer::MAX_NUM_CASCADES, fmt, 1, 0, EAH_GPU_Read | EAH_GPU_Write, nullptr);
-			}
-			else
-			{
-				pvp.filtered_csm_texs[0] = rf.MakeTexture2D(SM_SIZE * 2, SM_SIZE * 2, 3,
-					CascadedShadowLayer::MAX_NUM_CASCADES, fmt, 1, 0, EAH_GPU_Read | EAH_GPU_Write | EAH_Generate_Mips, nullptr);
-			}
+			pvp.filtered_csm_texs[0] = rf.MakeTexture2D(SM_SIZE * 2, SM_SIZE * 2, 3,
+				CascadedShadowLayer::MAX_NUM_CASCADES, fmt, 1, 0, EAH_GPU_Read | EAH_GPU_Write | EAH_Generate_Mips, nullptr);
 		}
 		else
 		{
-			if (caps.pack_to_rgba_required)
+			for (size_t i = 0; i < pvp.filtered_csm_texs.size(); ++ i)
 			{
-				for (size_t i = 0; i < pvp.filtered_csm_texs.size(); ++ i)
-				{
-					pvp.filtered_csm_texs[i] = rf.MakeTexture2D(SM_SIZE * 2, SM_SIZE * 2, 1, 1, fmt, 1, 0,
-						EAH_GPU_Read | EAH_GPU_Write, nullptr);
-				}
-			}
-			else
-			{
-				for (size_t i = 0; i < pvp.filtered_csm_texs.size(); ++ i)
-				{
-					pvp.filtered_csm_texs[i] = rf.MakeTexture2D(SM_SIZE * 2, SM_SIZE * 2, 3, 1, fmt, 1, 0,
-						EAH_GPU_Read | EAH_GPU_Write | EAH_Generate_Mips, nullptr);
-				}
+				pvp.filtered_csm_texs[i] = rf.MakeTexture2D(SM_SIZE * 2, SM_SIZE * 2, 3, 1, fmt, 1, 0,
+					EAH_GPU_Read | EAH_GPU_Write | EAH_Generate_Mips, nullptr);
 			}
 		}
 
@@ -1158,7 +1063,7 @@ namespace KlayGE
 		pvp.shadowing_tex = rf.MakeTexture2D(width / 2, height / 2, 1, 1, fmt, 1, 0, hint, nullptr);
 		pvp.shadowing_fb->Attach(FrameBuffer::ATT_Color0, rf.Make2DRenderView(*pvp.shadowing_tex, 0, 1, 0));
 
-		if (caps.fp_color_support && caps.rendertarget_format_support(EF_B10G11R11F, 1, 0))
+		if (caps.rendertarget_format_support(EF_B10G11R11F, 1, 0))
 		{
 			fmt = EF_B10G11R11F;
 		}
@@ -1188,30 +1093,8 @@ namespace KlayGE
 		pvp.reflection_fb->Attach(FrameBuffer::ATT_DepthStencil, rf.Make2DDepthStencilRenderView(
 			pvp.reflection_tex->Width(0), pvp.reflection_tex->Height(0), ds_view->Format(), 1, 0));
 
-		ElementFormat shading_fmt;
-		if (caps.fp_color_support)
-		{
-			BOOST_ASSERT(caps.rendertarget_format_support(EF_ABGR16F, 1, 0));
-			shading_fmt = EF_ABGR16F;
-		}
-		else
-		{
-			if (caps.rendertarget_format_support(EF_ABGR8, 1, 0))
-			{
-				shading_fmt = EF_ABGR8;
-			}
-			else
-			{
-				BOOST_ASSERT(caps.rendertarget_format_support(EF_ARGB8, 1, 0));
-				shading_fmt = EF_ARGB8;
-			}
-
-			ElementFormat fmt_srgb = MakeSRGB(fmt);
-			if (caps.texture_format_support(fmt_srgb) && caps.rendertarget_format_support(fmt_srgb, 1, 0))
-			{
-				fmt = fmt_srgb;
-			}
-		}
+		BOOST_ASSERT(caps.rendertarget_format_support(EF_ABGR16F, 1, 0));
+		ElementFormat shading_fmt = EF_ABGR16F;
 
 #if DEFAULT_DEFERRED == TRIDITIONAL_DEFERRED
 		pvp.lighting_tex = rf.MakeTexture2D(width, height, 1, 1, shading_fmt, 1, 0, EAH_GPU_Read | EAH_GPU_Write, nullptr);
@@ -1219,29 +1102,14 @@ namespace KlayGE
 		pvp.lighting_fb->Attach(FrameBuffer::ATT_DepthStencil, ds_view);
 #endif
 
-		if (caps.fp_color_support)
+		if (caps.rendertarget_format_support(EF_B10G11R11F, 1, 0))
 		{
-			if (caps.rendertarget_format_support(EF_B10G11R11F, 1, 0))
-			{
-				fmt = EF_B10G11R11F;
-			}
-			else
-			{
-				BOOST_ASSERT(caps.rendertarget_format_support(EF_ABGR16F, 1, 0));
-				fmt = EF_ABGR16F;
-			}
+			fmt = EF_B10G11R11F;
 		}
 		else
 		{
-			if (caps.rendertarget_format_support(EF_ABGR8, 1, 0))
-			{
-				fmt = EF_ABGR8;
-			}
-			else
-			{
-				BOOST_ASSERT(caps.rendertarget_format_support(EF_ARGB8, 1, 0));
-				fmt = EF_ARGB8;
-			}
+			BOOST_ASSERT(caps.rendertarget_format_support(EF_ABGR16F, 1, 0));
+			fmt = EF_ABGR16F;
 		}
 		hint = EAH_GPU_Read | EAH_GPU_Write;
 #if DEFAULT_DEFERRED == LIGHT_INDEXED_DEFERRED
@@ -2344,36 +2212,11 @@ namespace KlayGE
 
 	void DeferredRenderingLayer::BuildLinearDepthMipmap(PerViewport const & pvp)
 	{
-		RenderEngine& re = Context::Instance().RenderFactoryInstance().RenderEngineInstance();
-		RenderDeviceCaps const & caps = re.DeviceCaps();
-
 		depth_to_linear_pp_->InputPin(0, pvp.g_buffer_ds_tex);
 		depth_to_linear_pp_->OutputPin(0, pvp.g_buffer_depth_tex);
 		depth_to_linear_pp_->Apply();
 
-		if (caps.pack_to_rgba_required)
-		{
-			depth_mipmap_pp_->InputPin(0, pvp.g_buffer_depth_tex);
-			for (uint32_t i = 1; i < pvp.g_buffer_depth_tex->NumMipMaps(); ++i)
-			{
-				uint32_t const width = pvp.g_buffer_depth_tex->Width(i - 1);
-				uint32_t const height = pvp.g_buffer_depth_tex->Height(i - 1);
-				uint32_t const lower_width = pvp.g_buffer_depth_tex->Width(i);
-				uint32_t const lower_height = pvp.g_buffer_depth_tex->Height(i);
-
-				depth_mipmap_pp_->SetParam(0, float2(0.5f / width, 0.5f / height));
-
-				depth_mipmap_pp_->OutputPin(0, pvp.g_buffer_depth_pingpong_texs[i - 1], 0);
-				depth_mipmap_pp_->Apply();
-
-				pvp.g_buffer_depth_pingpong_texs[i - 1]->CopyToSubTexture2D(*pvp.g_buffer_depth_tex, 0, i, 0, 0,
-					lower_width, lower_height, 0, 0, 0, 0, lower_width, lower_height);
-			}
-		}
-		else
-		{
-			pvp.g_buffer_depth_tex->BuildMipSubLevels();
-		}
+		pvp.g_buffer_depth_tex->BuildMipSubLevels();
 	}
 
 	void DeferredRenderingLayer::RenderDecals(PerViewport const & pvp, PassType pass_type)
@@ -2533,11 +2376,7 @@ namespace KlayGE
 
 	void DeferredRenderingLayer::PostGenerateShadowMap(PerViewport const & pvp, int32_t org_no, int32_t index_in_pass)
 	{
-		RenderFactory& rf = Context::Instance().RenderFactoryInstance();
-		RenderEngine& re = rf.RenderEngineInstance();
-		RenderDeviceCaps const & caps = re.DeviceCaps();
-
-		LightSource::LightType type = lights_[org_no]->Type();
+		LightSource::LightType const type = lights_[org_no]->Type();
 
 		if (type != LightSource::LT_Sun)
 		{
@@ -2602,21 +2441,18 @@ namespace KlayGE
 		checked_pointer_cast<LogGaussianBlurPostProcess>(pp_chain)->ESMScaleFactor(ESM_SCALE_FACTOR, *sm_fb_->GetViewport()->camera);
 		pp_chain->Apply();
 
-		if (!caps.pack_to_rgba_required)
+		if (LightSource::LT_Sun == type)
 		{
-			if (LightSource::LT_Sun == type)
+			if (tex_array_support_)
 			{
-				if (tex_array_support_)
+				if (static_cast<int32_t>(pvp.num_cascades) == index_in_pass)
 				{
-					if (static_cast<int32_t>(pvp.num_cascades) == index_in_pass)
-					{
-						pvp.filtered_csm_texs[0]->BuildMipSubLevels();
-					}
+					pvp.filtered_csm_texs[0]->BuildMipSubLevels();
 				}
-				else
-				{
-					pvp.filtered_csm_texs[index_in_pass - 1]->BuildMipSubLevels();
-				}
+			}
+			else
+			{
+				pvp.filtered_csm_texs[index_in_pass - 1]->BuildMipSubLevels();
 			}
 		}
 	}
